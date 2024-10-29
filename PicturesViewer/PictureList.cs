@@ -14,13 +14,17 @@ namespace PicturesViewer
         private List<Button> _buttons;
         private List<String> _fileNames;
         private PictureBox _pictureBox;
-        public int N { get 
+        private int _currentImageIndex;
+        public int N 
+        { 
+            get 
             {
                 if (_buttons == null)
                     return 0;
 
                 return _buttons.Count;
-            } }
+            } 
+        }
 
         public PictureList()
         {
@@ -33,29 +37,39 @@ namespace PicturesViewer
 
         public void AddPictures(string path)
         {
-            string[] files = Directory.GetFiles(path);
+            string[] patterns = { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif" };
+            List<string> files = new List<string>();
 
-            if(files == null ) 
+            foreach (string pattern in patterns)
+                files.AddRange(Directory.GetFiles(path, pattern, SearchOption.TopDirectoryOnly));
+
+            if (files == null || files.Count == 0)
                 return;
 
             foreach (string x in files)
+                AddPicture(x);
+        }
+
+        public void AddPicture(string filePath)
+        {
+            if (File.Exists(filePath))
             {
-                int i = 0;
-                _buttons.Add(new Button());
-                _buttons[i].Size = new Size(90, 90);
-                _buttons[i].BackgroundImage = new Bitmap(x);
-                _buttons[i].BackgroundImageLayout = ImageLayout.Stretch;
+                Button button = new Button();
+                button.Size = new Size(90, 90);
+                button.BackgroundImage = new Bitmap(filePath);
+                button.BackgroundImageLayout = ImageLayout.Stretch;
 
-                _fileNames.Add(x);
-                _buttons[i].Tag = $"{x}";
-                _buttons[i].Click += OnButtonClick;
-                MessageBox.Show(x);
+                _fileNames.Add(filePath);
+                button.Tag = filePath;
+                button.Click += OnButtonClick;
 
-                i++;
+                _buttons.Add(button);
             }
         }
         // добавить метод который по заданному пути добавляет новый элемент
         // добавление одного файла, организовать листание 
+
+
         public void ShowImages(TableLayoutPanel tableLayoutPanel)
         {
             if (tableLayoutPanel == null) 
@@ -71,12 +85,41 @@ namespace PicturesViewer
             tableLayoutPanel.ColumnCount = 1;
 
             for (int i = 0; i < N; i++)
+                tableLayoutPanel.Controls.Add(_buttons[i], 0, i);   
+        }
+
+        public void ShowCurrentImage()
+        {
+            if (_currentImageIndex >= 0 && _currentImageIndex < _fileNames.Count)
             {
-                tableLayoutPanel.Controls.Add(_buttons[i], 0, i);
-                MessageBox.Show(i.ToString());
+                string filePath = _fileNames[_currentImageIndex];
+
+                UpdateImage(filePath);
             }
+        }
 
+        private void UpdateImage(string filePath)
+        {
+            _pictureBox.BackgroundImage = new Bitmap(filePath);
+            _pictureBox.BackgroundImageLayout = ImageLayout.Stretch;
+        }
 
+        public void SlideUp()
+        {
+            if (_currentImageIndex == 0)
+                return;
+
+            _currentImageIndex--;
+            ShowCurrentImage();
+        }
+
+        public void SlideDown()
+        {
+            if( _currentImageIndex == _fileNames.Count - 1)
+                return;
+
+            _currentImageIndex++;
+            ShowCurrentImage();
         }
 
         private void OnButtonClick(object sender, EventArgs e)
@@ -85,8 +128,10 @@ namespace PicturesViewer
 
             Button button = (Button)sender;
             string filePath = (string)button.Tag;
-            _pictureBox.BackgroundImage = new Bitmap(filePath);
-            _pictureBox.BackgroundImageLayout = ImageLayout.Stretch;
+
+            UpdateImage(filePath);
+
+            _currentImageIndex = _fileNames.IndexOf(filePath);
         }
     }
 }
